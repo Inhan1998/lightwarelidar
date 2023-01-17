@@ -96,7 +96,7 @@ struct lwDistanceResult {
 	float z;
 };
 
-int driverScan(lwSerialPort* Serial, lwDistanceResult* DistanceResult) {
+int driverScan(lwSerialPort* Serial, lwDistanceResult* DistanceResult, lwSf45Params* Params) {
 	// The incoming point data packet is Command 44: Distance data in cm.
 	lwResponsePacket response;
 
@@ -107,11 +107,15 @@ int driverScan(lwSerialPort* Serial, lwDistanceResult* DistanceResult) {
 		float distance = distanceCm / 100.0f;
 		float angle = angleHundredths / 100.0f;
 		float faceAngle = (angle - 90) * M_PI / 180.0;
-
+		
 		DistanceResult->x = distance * -cos(faceAngle);
 		DistanceResult->y = distance * sin(faceAngle);
 		DistanceResult->z = 0;
-
+		
+		if (angle > (Params->highAngleLimit - 1) || angle < (Params->lowAngleLimit +1)){
+			return 2;
+		}
+											
 		return 1;
 	}
 
@@ -193,11 +197,22 @@ int main(int argc, char** argv) {
 
 		while (true) {
 			lwDistanceResult distanceResult;
-			int status = driverScan(serial, &distanceResult);
+			int status = driverScan(serial, &distanceResult, &params);
 
 			if (status == 0) {
 				break;
-			} else {
+			} 
+			// added code
+			else if (status == 2) {
+				memcpy(&pointCloudMsg.data[0], &distanceResults[0], maxPointsPerMsg * 12);
+
+				if (currentPoint != 0){
+				pointCloudMsg.header.stamp = ros::Time::now();
+				pointCloudPub.publish(pointCloudMsg);
+				}
+				currentPoint = 0;
+			}
+			else {
 				distanceResults[currentPoint] = distanceResult;
 				++currentPoint;
 			}
