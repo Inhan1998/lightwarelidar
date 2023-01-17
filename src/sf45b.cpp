@@ -135,21 +135,21 @@ int main(int argc, char** argv) {
 	int32_t baudRate;
     privateNode.param(std::string("baudrate"), baudRate, 115200);
 	std::string portName;
-    privateNode.param(std::string("port"), portName, std::string("/dev/ttyUSB0"));
+    privateNode.param(std::string("port"), portName, std::string("/dev/ttyACM0"));
 	std::string frameId;
     privateNode.param(std::string("frame_id"), frameId, std::string("laser"));
 
 	lwSf45Params params;
-	privateNode.param(std::string("updateRate"), params.updateRate, 6);
+	privateNode.param(std::string("updateRate"), params.updateRate, 12);
 	privateNode.param(std::string("cycleDelay"), params.cycleDelay, 5);
-	privateNode.param(std::string("lowAngleLimit"), params.lowAngleLimit, -45.0f);
-	privateNode.param(std::string("highAngleLimit"), params.highAngleLimit, 45.0f);
+	privateNode.param(std::string("lowAngleLimit"), params.lowAngleLimit, -90.0f);
+	privateNode.param(std::string("highAngleLimit"), params.highAngleLimit, 90.0f);
 	validateParams(&params);
 	
 	int maxPointsPerMsg;
-	privateNode.param(std::string("maxPoints"), maxPointsPerMsg, 100);
-	if (maxPointsPerMsg < 1) maxPointsPerMsg = 1;
+	privateNode.param(std::string("maxPoints"), maxPointsPerMsg, 1500);
 
+	if (maxPointsPerMsg < 1) maxPointsPerMsg = 1;
 	ROS_INFO("Starting SF45B node");
 	
 	if (driverStart(&serial, portName.c_str(), baudRate) != 0) {
@@ -202,8 +202,7 @@ int main(int argc, char** argv) {
 			if (status == 0) {
 				break;
 			} 
-			// added code
-			else if (status == 2) {
+			else if (status ==2) {
 				memcpy(&pointCloudMsg.data[0], &distanceResults[0], maxPointsPerMsg * 12);
 
 				if (currentPoint != 0){
